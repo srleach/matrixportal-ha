@@ -28,14 +28,21 @@ jobs:
       - uses: actions/checkout@v4
       - uses: hacs/action@main
         env:
-          # The action reads hacs.json and the manifest back through the
-          # GitHub API rather than off disk. Unauthenticated that returns
-          # nothing for a private repository, and both checks fail as
-          # "expected a dictionary. Got None".
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           category: integration
-          # The brands check requires an entry in home-assistant/brands,
-          # which is for publicly listed integrations. This one is
-          # installed from a private custom repository.
-          ignore: brands
+          # Three checks this repository cannot satisfy, none of them
+          # about the code:
+          #
+          #   brands              needs an entry in home-assistant/brands,
+          #                       which is for publicly listed integrations
+          #   hacsjson            reads hacs.json back through the GitHub
+          #   integration_manifest  API rather than off disk, and gets
+          #                       nothing for a private repository -- both
+          #                       fail as "expected a dictionary. Got
+          #                       None" even when the files are correct,
+          #                       with or without a token
+          #
+          # The remaining five still run. hassfest above covers the
+          # manifest properly, off disk, and is the one to trust.
+          ignore: brands hacsjson integration_manifest
