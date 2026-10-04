@@ -1,0 +1,67 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "MatrixPortal display OTA",
+        "description": "Home Assistant fetches signed firmware releases and pushes them to the displays over the LAN. The token stays here — the boards never talk to GitHub.",
+        "data": {
+          "repo": "Repository",
+          "token": "GitHub token",
+          "base_topic": "MQTT base topic"
+        },
+        "data_description": {
+          "repo": "owner/name of the firmware repository.",
+          "token": "A fine-grained personal access token with Contents: Read on that repository and nothing else.",
+          "base_topic": "Must match the base topic set in each display's web portal."
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "GitHub refused the token. It needs Contents: Read on that repository.",
+      "no_release": "No release found. Check the repository name, and that the token can see it.",
+      "cannot_connect": "Could not reach GitHub."
+    },
+    "abort": {
+      "already_configured": "That repository is already set up.",
+      "single_instance_allowed": "Already set up. Only one instance is needed."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Address override",
+        "description": "Leave this empty for the usual case: addresses are discovered from the displays themselves, so a board that moves is followed and a new one joins on its own.",
+        "data": {
+          "host_override": "Display addresses"
+        },
+        "data_description": {
+          "host_override": "Space-separated. Set this only to pin the list — to reach a board that has dropped off MQTT, or to update one on purpose while leaving the others alone."
+        }
+      }
+    }
+  },
+  "services": {
+    "update": {
+      "name": "Update firmware",
+      "description": "Fetches a signed release and pushes it to every display that is not already on it.",
+      "fields": {
+        "tag": {
+          "name": "Tag",
+          "description": "Release tag, or \"latest\"."
+        },
+        "only": {
+          "name": "Only this display",
+          "description": "Device id, such as matrix-a1b2c3. Leave empty for all of them."
+        },
+        "dry_run": {
+          "name": "Dry run",
+          "description": "Report what would happen, and change nothing."
+        }
+      }
+    },
+    "refresh_latest": {
+      "name": "Refresh latest version",
+      "description": "Asks GitHub for the newest release and republishes it to the retained topic the displays' Firmware entities read."
+    }
+  }
+}

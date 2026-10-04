@@ -1,0 +1,35 @@
+name: Validate
+
+# Two things that would otherwise only show up as a broken install:
+# hassfest checks the manifest Home Assistant will load, and the HACS
+# action checks the repository layout HACS will download.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  hassfest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: home-assistant/actions/hassfest@master
+
+  hacs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hacs/action@main
+        with:
+          category: integration
+          # The brands check requires an entry in home-assistant/brands,
+          # which is for publicly listed integrations. This one is
+          # installed from a private custom repository.
+          ignore: brands

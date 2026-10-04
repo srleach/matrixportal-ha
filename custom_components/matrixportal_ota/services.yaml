@@ -1,0 +1,21 @@
+update:
+  fields:
+    tag:
+      required: false
+      default: latest
+      example: v0.3.2
+      selector:
+        text:
+    only:
+      required: false
+      default: ""
+      example: matrix-a1b2c3
+      selector:
+        text:
+    dry_run:
+      required: false
+      default: false
+      selector:
+        boolean:
+
+refresh_latest:

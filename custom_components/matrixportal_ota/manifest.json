@@ -1,0 +1,14 @@
+{
+  "domain": "matrixportal_ota",
+  "name": "MatrixPortal Display OTA",
+  "codeowners": ["@srleach"],
+  "config_flow": true,
+  "dependencies": ["mqtt"],
+  "documentation": "https://github.com/srleach/matrixportal-ha",
+  "integration_type": "service",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/srleach/matrixportal-ha/issues",
+  "requirements": [],
+  "single_config_entry": true,
+  "version": "0.1.0"
+}
