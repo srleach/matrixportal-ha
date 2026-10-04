@@ -31,18 +31,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           category: integration
-          # Three checks this repository cannot satisfy, none of them
-          # about the code:
-          #
-          #   brands              needs an entry in home-assistant/brands,
-          #                       which is for publicly listed integrations
-          #   hacsjson            reads hacs.json back through the GitHub
-          #   integration_manifest  API rather than off disk, and gets
-          #                       nothing for a private repository -- both
-          #                       fail as "expected a dictionary. Got
-          #                       None" even when the files are correct,
-          #                       with or without a token
-          #
-          # The remaining five still run. hassfest above covers the
-          # manifest properly, off disk, and is the one to trust.
-          ignore: brands hacsjson integration_manifest
+          # The brands check wants an entry in home-assistant/brands,
+          # which is for integrations listed in the HACS default store.
+          # This one is added as a custom repository, so there is nothing
+          # to add there and nothing the check can tell us.
+          ignore: brands

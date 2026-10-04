@@ -4,8 +4,8 @@ A Home Assistant custom integration that updates the firmware on
 [MatrixPortal M4 wall displays](https://github.com/srleach/matrixportal-m4-display)
 over the air.
 
-The boards cannot fetch their own firmware. The repository is private, and
-reaching it would mean a TLS stack, a current CA bundle and GitHub's redirects
+The boards cannot fetch their own firmware. The firmware repository is private,
+and reaching it would mean a TLS stack, a current CA bundle and GitHub's redirects
 on a WiFi co-processor running 2019 firmware — a great deal of fragile code
 guarding the one step that must not fail. So Home Assistant does the fetching,
 and pushes the image to the board over the LAN:
@@ -38,17 +38,21 @@ release. There is no rollback protection.
 
 ### 1. HACS
 
-This repository is private, so HACS can only see it if the GitHub token HACS
-itself was set up with can read it.
-
 HACS → ⋮ → **Custom repositories** → add `srleach/matrixportal-ha`, category
 **Integration**. Then install **MatrixPortal Display OTA** and restart Home
 Assistant.
 
+This repository is public so that HACS can read it: HACS authenticates with a
+GitHub device-OAuth token that carries no scopes, so it can see public
+repositories and nothing else. Nothing here needs to be secret — there is no
+key material, no token and no addresses in it, and the firmware repository it
+fetches releases from stays private.
+
 ### 2. A GitHub token for the integration
 
-Separate from HACS's own token. A fine-grained personal access token with
-**Contents: Read** on the firmware repository and nothing else.
+A fine-grained personal access token with **Contents: Read** on the firmware
+repository and nothing else. This is the one that reaches the private
+repository, and it goes in the config flow below — never in this repository.
 
 ### 3. Add the integration
 
