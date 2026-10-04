@@ -27,6 +27,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: hacs/action@main
+        env:
+          # The action reads hacs.json and the manifest back through the
+          # GitHub API rather than off disk. Unauthenticated that returns
+          # nothing for a private repository, and both checks fail as
+          # "expected a dictionary. Got None".
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           category: integration
           # The brands check requires an entry in home-assistant/brands,
