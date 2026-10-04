@@ -137,12 +137,51 @@ A board that boots but misbehaves is recoverable from Home Assistant. A board
 that does not boot at all needs a cable — the bootloader below `0x4000` is never
 written, so it still comes up as the `MATRIXBOOT` drive over USB.
 
+### Pushing settings
+
+Since firmware v0.4.0, a board takes a whole block of settings in one publish —
+`settings/set` — rather than a message per knob, and its Home Assistant device
+page carries only the controls rather than every configuration entity. This
+integration wraps that block as a service:
+
+```yaml
+action: matrixportal_ota.apply_settings
+data:
+  device: matrix-a1b2c3
+  scene: storm
+  scene_amount: 40
+  day_brightness: 35
+```
+
+The named fields are what automations reach for — the scene and its knobs, the
+mode, brightnesses, theme, volume, power — translated into the firmware's own
+section shapes (`scene_amount: 40` goes out as `{"scene": {"amount": 40}}`).
+Anything else is `extra`, whole sections exactly as the firmware's
+[mqtt.md](https://github.com/srleach/matrixportal-m4-display/blob/main/docs/mqtt.md#settingsset--a-block-of-settings-at-once)
+documents them, so a new firmware knob needs no release of this integration to
+reach an automation:
+
+```yaml
+action: matrixportal_ota.apply_settings
+data:
+  device: matrix-a1b2c3
+  scene: fireworks
+  extra:
+    starfield:
+      speed: 70
+      style: warp
+```
+
+A publish, not a retained state: the board's own `scene/state` is what survives
+a reboot. The service returns the topic and payload it sent, for debugging.
+
 ### Services
 
 | Service | What it does |
 |---|---|
 | `matrixportal_ota.update` | Fetch a release and push it to the displays that need it |
 | `matrixportal_ota.refresh_latest` | Re-read the newest tag and republish the retained topic |
+| `matrixportal_ota.apply_settings` | Push a block of settings to one display in a single publish |
 
 ## Requirements
 

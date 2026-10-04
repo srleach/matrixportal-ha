@@ -11,6 +11,7 @@ GitHub.
 
 from __future__ import annotations
 
+import json
 import logging
 
 import voluptuous as vol
@@ -27,9 +28,20 @@ from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 
 from .const import (
+    ATTR_DAY_BRIGHTNESS,
     ATTR_DRY_RUN,
+    ATTR_EXTRA,
+    ATTR_MODE,
+    ATTR_NIGHT_BRIGHTNESS,
     ATTR_ONLY,
+    ATTR_POWER,
+    ATTR_SCENE,
+    ATTR_SCENE_AMOUNT,
+    ATTR_SCENE_LAYER,
+    ATTR_SCENE_SPEED,
     ATTR_TAG,
+    ATTR_THEME,
+    ATTR_VOLUME,
     CONF_BASE_TOPIC,
     CONF_HOST_OVERRIDE,
     CONF_REPO,
@@ -38,6 +50,7 @@ from .const import (
     DOMAIN,
     INSTALL_TOPIC,
     LATEST_TOPIC,
+    SERVICE_APPLY_SETTINGS,
     SERVICE_REFRESH_LATEST,
     SERVICE_UPDATE,
 )
@@ -51,6 +64,37 @@ UPDATE_SCHEMA = vol.Schema(
         vol.Optional(ATTR_TAG, default="latest"): cv.string,
         vol.Optional(ATTR_ONLY, default=""): cv.string,
         vol.Optional(ATTR_DRY_RUN, default=False): cv.boolean,
+    }
+)
+
+# Everything optional except the device: an automation that means to
+# change anything should have to say which board it means. The friendly
+# field names are translated to the firmware's section shapes below --
+# the caller says scene_amount, the board receives
+# {"scene": {"amount": ...}} -- because the wire shape is the firmware's
+# and the caller's is Home Assistant's.
+SETTINGS_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_DEVICE): cv.string,
+        vol.Optional(ATTR_SCENE): cv.string,
+        vol.Optional(ATTR_MODE): cv.string,
+        vol.Optional(ATTR_SCENE_AMOUNT): vol.All(
+            vol.Coerce(int), vol.Range(min=0, max=100)
+        ),
+        vol.Optional(ATTR_SCENE_SPEED): vol.All(
+            vol.Coerce(int), vol.Range(min=1, max=100)
+        ),
+        vol.Optional(ATTR_SCENE_LAYER): cv.string,
+        vol.Optional(ATTR_DAY_BRIGHTNESS): vol.All(
+            vol.Coerce(int), vol.Range(min=1, max=100)
+        ),
+        vol.Optional(ATTR_NIGHT_BRIGHTNESS): vol.All(
+            vol.Coerce(int), vol.Range(min=1, max=100)
+        ),
+        vol.Optional(ATTR_THEME): cv.string,
+        vol.Optional(ATTR_VOLUME): cv.string,
+        vol.Optional(ATTR_POWER): cv.boolean,
+        vol.Optional(ATTR_EXTRA): dict,
     }
 )
 
@@ -103,6 +147,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = {
         "coordinator": coordinator,
         "runner": runner,
+        "base": base,
     }
 
     _register_services(hass)
@@ -117,6 +162,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.data.pop(DOMAIN, None)
         hass.services.async_remove(DOMAIN, SERVICE_UPDATE)
         hass.services.async_remove(DOMAIN, SERVICE_REFRESH_LATEST)
+        hass.services.async_remove(DOMAIN, SERVICE_APPLY_SETTINGS)
 
     return True
 
@@ -152,6 +198,64 @@ def _register_services(hass: HomeAssistant) -> None:
         coordinator: LatestTagCoordinator = _runtime()["coordinator"]
         await coordinator.async_refresh()
 
+    async def _apply_settings(call: ServiceCall) -> ServiceResponse:
+        """One publish of a settings block, in the firmware's own shape.
+
+        The named fields cover what an automation reaches for -- the
+        scene and its knobs, the mode, brightnesses, theme, volume,
+        power. Anything else is `extra`: whole sections exactly as the
+        firmware's mqtt.md describes them, merged in verbatim so a new
+        firmware knob needs no release of this integration to reach an
+        automation.
+        """
+        data = call.data
+        sections: dict[str, dict] = {}
+
+        def put(section: str, key: str, value: object) -> None:
+            sections.setdefault(section, {})[key] = value
+
+        if (v := data.get(ATTR_SCENE)) is not None:
+            put("scene", "id", v)
+        if (v := data.get(ATTR_SCENE_AMOUNT)) is not None:
+            put("scene", "amount", v)
+        if (v := data.get(ATTR_SCENE_SPEED)) is not None:
+            put("scene", "speed", v)
+        if (v := data.get(ATTR_SCENE_LAYER)) is not None:
+            put("scene", "layer", v)
+        if (v := data.get(ATTR_MODE)) is not None:
+            put("display", "mode", v)
+        if (v := data.get(ATTR_DAY_BRIGHTNESS)) is not None:
+            put("display", "dayBrightness", v)
+        if (v := data.get(ATTR_NIGHT_BRIGHTNESS)) is not None:
+            put("display", "nightBrightness", v)
+        if (v := data.get(ATTR_THEME)) is not None:
+            put("display", "themeId", v)
+        if (v := data.get(ATTR_POWER)) is not None:
+            put("display", "powerOn", v)
+        if (v := data.get(ATTR_VOLUME)) is not None:
+            put("sound", "volume", v)
+
+        # extra arrives as whole sections; anything it shares with the
+        # named fields wins, on the principle that the explicit call
+        # intent outranks the blob.
+        for section, fields in (data.get(ATTR_EXTRA) or {}).items():
+            if not isinstance(fields, dict):
+                raise HomeAssistantError(
+                    f"extra section '{section}' must be an object"
+                )
+            sections.setdefault(str(section), {}).update(fields)
+
+        if not sections:
+            raise HomeAssistantError("nothing to apply: name a setting or pass extra")
+
+        base: str = _runtime()["base"]
+        device: str = data[ATTR_DEVICE]
+        topic = SETTINGS_TOPIC.format(base=base, device=device)
+        payload = json.dumps(sections, separators=(",", ":"))
+        await mqtt.async_publish(hass, topic, payload)
+        _LOGGER.info("settings block applied to %s: %s", device, payload)
+        return {"topic": topic, "payload": sections}
+
     hass.services.async_register(
         DOMAIN,
         SERVICE_UPDATE,
@@ -160,3 +264,10 @@ def _register_services(hass: HomeAssistant) -> None:
         supports_response=SupportsResponse.OPTIONAL,
     )
     hass.services.async_register(DOMAIN, SERVICE_REFRESH_LATEST, _refresh_latest)
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_APPLY_SETTINGS,
+        _apply_settings,
+        schema=SETTINGS_SCHEMA,
+        supports_response=SupportsResponse.OPTIONAL,
+    )

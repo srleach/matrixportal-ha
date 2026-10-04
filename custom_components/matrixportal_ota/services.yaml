@@ -19,3 +19,84 @@ update:
         boolean:
 
 refresh_latest:
+
+apply_settings:
+  fields:
+    device:
+      required: true
+      example: matrix-a1b2c3
+      selector:
+        text:
+    scene:
+      required: false
+      selector:
+        select:
+          options:
+            - none
+            - christmas
+            - sunny
+            - snowy
+            - rainy
+            - storm
+            - halloween
+            - fireworks
+    mode:
+      required: false
+      selector:
+        select:
+          options: [clock, starfield, effects]
+    scene_amount:
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 100
+          step: 1
+          unit_of_measurement: "%"
+    scene_speed:
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 100
+          step: 1
+          unit_of_measurement: "%"
+    scene_layer:
+      required: false
+      selector:
+        select:
+          options: [behind, front]
+    day_brightness:
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 100
+          step: 1
+          unit_of_measurement: "%"
+    night_brightness:
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 100
+          step: 1
+          unit_of_measurement: "%"
+    theme:
+      required: false
+      selector:
+        text:
+    volume:
+      required: false
+      selector:
+        select:
+          options: [quiet, low, medium, loud]
+    power:
+      required: false
+      selector:
+        boolean:
+    extra:
+      required: false
+      example: '{"starfield": {"speed": 70}}'
+      selector:
+        object:

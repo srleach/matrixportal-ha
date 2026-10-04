@@ -16,10 +16,23 @@ DEFAULT_BASE_TOPIC = "matrixdisplay"
 
 SERVICE_UPDATE = "update"
 SERVICE_REFRESH_LATEST = "refresh_latest"
+SERVICE_APPLY_SETTINGS = "apply_settings"
 
 ATTR_TAG = "tag"
 ATTR_ONLY = "only"
 ATTR_DRY_RUN = "dry_run"
+ATTR_DEVICE = "device"
+ATTR_SCENE = "scene"
+ATTR_MODE = "mode"
+ATTR_SCENE_AMOUNT = "scene_amount"
+ATTR_SCENE_SPEED = "scene_speed"
+ATTR_SCENE_LAYER = "scene_layer"
+ATTR_DAY_BRIGHTNESS = "day_brightness"
+ATTR_NIGHT_BRIGHTNESS = "night_brightness"
+ATTR_THEME = "theme"
+ATTR_VOLUME = "volume"
+ATTR_POWER = "power"
+ATTR_EXTRA = "extra"
 
 # One retained topic shared by every board: each board's update entity
 # reads latest_version from it, so this is published once rather than
@@ -30,6 +43,24 @@ LATEST_TOPIC = "{base}/firmware/latest"
 # install topic -- being told to install is no use to something that
 # cannot fetch. Home Assistant listens instead and does the push.
 INSTALL_TOPIC = "{base}/+/update/install"
+
+# The one-topic-for-everything settings block the firmware takes (v0.4.0):
+# sections of whatever their own set topics accept, merged, and the scene
+# among them because it is runtime state. A command, not state: never
+# retained -- the board's own scene/state is what survives a reboot.
+SETTINGS_TOPIC = "{base}/{device}/settings/set"
+
+# The scene names the firmware knows, in the order it offers them.
+SCENES = (
+    "none",
+    "christmas",
+    "sunny",
+    "snowy",
+    "rainy",
+    "storm",
+    "halloween",
+    "fireworks",
+)
 
 # Matches the firmware's six-hourly expectation in docs/ota.md.
 SCAN_INTERVAL = timedelta(hours=6)
