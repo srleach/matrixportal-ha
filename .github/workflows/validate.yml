@@ -1,8 +1,8 @@
 name: Validate
 
-# Two things that would otherwise only show up as a broken install:
-# hassfest checks the manifest Home Assistant will load, and the HACS
-# action checks the repository layout HACS will download.
+# hassfest checks the manifest, HACS checks the repository layout, and
+# Ruff catches syntax errors and undefined names. Neither of the first
+# two caught the missing imports that prevented v0.2.0 from loading.
 
 on:
   push:
@@ -16,6 +16,19 @@ permissions:
   contents: read
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install ruff
+      # E9 is the syntax and indentation set, F is pyflakes -- undefined
+      # names (F821) and unused imports (F401). Deliberately narrow: this
+      # is a correctness gate, not a style one.
+      - run: ruff check --select E9,F --output-format github custom_components
+
   hassfest:
     runs-on: ubuntu-latest
     steps:
