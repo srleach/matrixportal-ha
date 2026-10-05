@@ -29,6 +29,7 @@ from homeassistant.helpers import config_validation as cv
 
 from .const import (
     ATTR_DAY_BRIGHTNESS,
+    ATTR_DEVICE,
     ATTR_DRY_RUN,
     ATTR_EXTRA,
     ATTR_MODE,
@@ -53,6 +54,7 @@ from .const import (
     SERVICE_APPLY_SETTINGS,
     SERVICE_REFRESH_LATEST,
     SERVICE_UPDATE,
+    SETTINGS_TOPIC,
 )
 from .coordinator import LatestTagCoordinator
 from .runner import UpdateRunner
